@@ -1,0 +1,71 @@
+browser:
+  user_data_dir: ./.pw-userdata
+  base_url: https://www.tivtaam.co.il
+  default_timeout_ms: 15000
+  navigation_timeout_ms: 30000
+  navigation_jitter_ms: [200, 600]
+
+history:
+  sync_min_age_hours: 24
+  full_sync_pages: 50
+  fuzzy_floor: 70
+
+thresholds:
+  alias_max_age_days: 90
+  history_high: 0.80
+  history_margin: 0.15
+  search_high: 88
+  search_margin: 10
+  claude_high: 0.85
+  ask_user_below: 0.75
+
+basket:
+  lookback_weeks: 12
+  min_weeks: 6
+  max_suggestions: 8
+
+coupons:
+  auto_clip: true
+  surface_unrelated: false
+
+claude:
+  model_default: claude-haiku-4-5-20251001
+  model_escalate: claude-sonnet-4-6
+  max_tokens: 600
+  temperature: 0
+  cache_system: true
+
+run:
+  timeout_minutes: 20
+  cart_total_drift_pct: 5
+
+telegram:
+  poll_interval_s: 2
+
+# Broad generics that surface ALL matching past purchases for multi-pick,
+# instead of resolving to one SKU. Matched on the normalized generic name.
+# `keywords`: a product is in-category if its name contains ANY of these.
+# `exclude`: …unless its name also contains ANY of these (kills false hits
+# like cookies / chip-seasoning / "ראש מגב קליק"). Edit freely.
+categories:
+  חטיפים:
+    keywords:
+      - דוריטוס
+      - נאצ'וס
+      - ביסלי
+      - במבה
+      - חטיף
+      - פרינגלס
+      - ביגלה
+      - אפרופו
+      - פופקורן
+      - צ'יפס
+      - תפוצ'יפס
+      - קרקר
+      - בוגלה
+    exclude:
+      - עוגיות
+      - מגב
+      - תיבול
+      - סיסט
+      - רוטב

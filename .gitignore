@@ -1,0 +1,23 @@
+.env
+.env.local
+.pw-userdata/
+data/tivtaam.db
+data/tivtaam.db-wal
+data/tivtaam.db-shm
+data/jobs/*.json
+logs/
+__pycache__/
+*.pyc
+*.pyo
+.pytest_cache/
+.ruff_cache/
+.venv/
+venv/
+*.egg-info/
+build/
+dist/
+.vscode/
+.idea/
+
+# Local Claude Code settings (machine-specific)
+.claude/settings.local.json

@@ -1,0 +1,47 @@
+[project]
+name = "tivtaam"
+version = "0.1.0"
+description = "Personal shopping automation for Tiv Taam (טיב טעם)"
+requires-python = ">=3.11"
+dependencies = [
+    "playwright>=1.48",
+    "anthropic>=0.40",
+    "aiogram>=3.13",
+    "rapidfuzz>=3.10",
+    "typer>=0.13",
+    "rich>=13.9",
+    "pydantic>=2.9",
+    "pydantic-settings>=2.6",
+    "python-dotenv>=1.0",
+    "tenacity>=9.0",
+    "pyyaml>=6.0",
+]
+
+[project.optional-dependencies]
+dev = [
+    "pytest>=8.3",
+    "pytest-asyncio>=0.24",
+    "ruff>=0.7",
+]
+
+[project.scripts]
+tivtaam = "tivtaam.cli:app"
+
+[build-system]
+requires = ["setuptools>=68"]
+build-backend = "setuptools.build_meta"
+
+[tool.setuptools.packages.find]
+where = ["src"]
+
+[tool.ruff]
+line-length = 100
+target-version = "py311"
+
+[tool.ruff.lint]
+select = ["E", "F", "I", "B", "UP", "N", "W"]
+ignore = ["E501"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+asyncio_mode = "auto"

@@ -1,0 +1,77 @@
+# Selectors recorded during the manual exploration pass (scripts/explore.py).
+# Each key has a list of candidate strategies tried in order until one resolves.
+# Strategies:
+#   - testid: <data-testid value>            (preferred — most stable)
+#   - role:   <role>:<accessible name regex>
+#   - css:    <CSS selector>
+#   - text:   <text content regex>           (last-resort fallback)
+#
+# Update this file when the site DOM changes; do not embed raw selectors in code.
+#
+# Site is AngularJS (no data-testid attrs); use CSS + ng-attribute hooks.
+
+logged_in_indicator:
+  - css: 'div.user-name'
+  - text: ^דב איצקוביץ
+
+login_link:
+  - css: 'button.login[ng-click*="openLoginDialog"]'
+  - text: ^כניסה$
+
+login_username_field:
+  - css: 'input#email[type="email"]'
+  - css: 'input[name="email"]'
+
+login_password_field:
+  - css: 'input#password[type="password"]'
+  - css: 'input[type="password"]'
+
+login_submit:
+  - css: 'button.block[type="submit"]'
+  - text: ^כניסה$
+
+orders_history_link:
+  - css: 'a[href="/smart-list"]'
+  - text: ^המוצרים שאני בד"כ קונה$
+
+order_row:
+  - css: 'tr.clickable[ng-click*="openOrder"]'
+  - css: 'tr.clickable[role="button"]'
+
+order_expand_button:
+  - css: 'button[ng-click^="openOrder"]'
+  - text: ^פרטי הזמנה$
+
+# Order line items: on /orders-history/{id}, each product appears as
+# <td class="product-details">name</td>. Past orders don't expose SKUs, so the
+# scraper synthesizes a SKU from the normalized name (prefix "name:").
+order_line_item_name:
+  - css: 'td.product-details'
+
+# The product opens in a fullscreen dialog over the homepage. The homepage and
+# the dialog's "similar products" carousel each have many .add-to-cart buttons;
+# only the one under .dialog.product .product-data is the *target* product.
+product_add_to_cart_button:
+  - css: '.dialog.product .product-data button.add-to-cart'
+  - css: '.dialog.product .price-and-actions button.add-to-cart'
+  - css: '.dialog.product .product-details > .product-data button[ng-click^="addLine"]'
+
+product_quantity_input:
+  - css: 'input[type="number"][aria-label="Quantity"]'
+  - css: 'input[type="number"]'
+
+cart_link:
+  - css: 'div.sidenav[aria-label="עגלת קניות"] nav.cart > header'
+  - css: 'header[ng-click*="toggleCart"]'
+
+cart_total:
+  - css: 'nav.cart header .summary .price'
+  - css: '.summary .price'
+
+coupons_link:
+  - css: 'a[href="/user/coupons"]'
+  - text: ^הקופונים שלי$
+
+coupon_clip_button:
+  - css: 'button.add-to-cart[ng-click*="CART_LINE_TYPES.COUPON"]'
+  - css: 'button.add-to-cart[ng-if*="!item.isclipped"]'
