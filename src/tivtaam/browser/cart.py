@@ -12,6 +12,7 @@ in `browser.checkout_park`.
 
 from __future__ import annotations
 
+from collections.abc import Callable
 from dataclasses import dataclass
 
 from playwright.sync_api import Page
@@ -273,14 +274,18 @@ def execute_plan(
     page: Page | None,
     lines: list[CartLine],
     dry_run: bool = True,
+    on_item: Callable[[int, int, CartLine, bool], None] | None = None,
 ) -> CartWriteResult:
     added: list[str] = []
     failed: list[str] = []
-    for line in lines:
+    total = len(lines)
+    for i, line in enumerate(lines, start=1):
         if dry_run:
             log.info("[dry-run] would add: sku=%s qty=%s name=%r",
                      line.sku, line.qty, line.name)
             added.append(line.sku)
+            if on_item is not None:
+                on_item(i, total, line, True)
             continue
         if page is None:
             raise RuntimeError("execute_plan(dry_run=False) requires a Page")
@@ -290,4 +295,6 @@ def execute_plan(
             log.warning("add failed for sku=%s: %s", line.sku, e)
             ok = False
         (added if ok else failed).append(line.sku)
+        if on_item is not None:
+            on_item(i, total, line, ok)
     return CartWriteResult(added=added, failed=failed, dry_run=dry_run)

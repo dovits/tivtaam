@@ -315,10 +315,27 @@ def approve_job(job_id: str, dry_run: bool = True) -> int:
             )
         return 0
 
+    notify_token = cfg.secrets.telegram_bot_token
+    notify_chat = cfg.secrets.telegram_allowed_user_id
+    notify_enabled = bool(notify_token and notify_chat)
+
+    def _on_item(i: int, total: int, line: CartLine, ok: bool) -> None:
+        if not notify_enabled:
+            return
+        icon = "✅" if ok else "❌"
+        name = line.name or line.sku
+        _telegram_send(notify_token, notify_chat, f"{icon} ({i}/{total}) {name}")
+
+    if notify_enabled and lines:
+        _telegram_send(
+            notify_token, notify_chat,
+            f"🛒 Sending {len(lines)} item(s) to cart…",
+        )
+
     with open_context() as ctx:
         page = open_page(ctx)
         ensure_logged_in(page)
-        result = execute_plan(page, lines, dry_run=False)
+        result = execute_plan(page, lines, dry_run=False, on_item=_on_item)
 
         clipped: list[str] = []
         surfaced: list[str] = []
