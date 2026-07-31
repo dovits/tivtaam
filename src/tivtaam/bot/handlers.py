@@ -28,6 +28,7 @@ from aiogram.types import (
 )
 
 from tivtaam.bot.auth_guard import ensure_allowed, is_allowed
+from tivtaam.bot.health import format_report, snapshot
 from tivtaam.bot.ipc import get_job, latest_job, new_job, update_state
 from tivtaam.config import repo_root
 from tivtaam.db.migrations import ensure_db
@@ -69,7 +70,8 @@ async def cmd_help(message: Message) -> None:
         "/status — show last job state\n"
         "/approve [job] — dry-run the cart write\n"
         "/approve [job] live — write the REAL cart, then park at /cart (pay manually)\n"
-        "/cancel — drop pending list-entry state"
+        "/cancel — drop pending list-entry state\n"
+        "/health — service uptime, session freshness, DB and disk"
     )
 
 
@@ -347,6 +349,16 @@ async def cmd_status(message: Message) -> None:
         except Exception:
             pass
     await message.reply("\n".join(txt), parse_mode="Markdown")
+
+
+@router.message(Command("health"))
+async def cmd_health(message: Message) -> None:
+    """Unattended-service self-check — the only way to notice silent rot."""
+    if not await ensure_allowed(message):
+        return
+    # Touches the DB, the filesystem and the cookie jar; keep it off the loop.
+    report = await asyncio.to_thread(snapshot)
+    await message.reply(format_report(report), parse_mode="Markdown")
 
 
 @router.message()
