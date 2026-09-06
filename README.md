@@ -33,6 +33,37 @@ python -m tivtaam resolve "גבינה בולגרית"
 
 See `C:\Users\dovit\.claude\plans\shimmying-cooking-sunbeam.md` for the full plan and roadmap.
 
+## Activate (fill a cart)
+
+`doctor` is an offline pre-flight — it checks every prerequisite and names the
+one next step, so run it whenever you're unsure:
+
+```powershell
+python -m tivtaam doctor
+```
+
+Order of operations on a fresh machine:
+
+```powershell
+python scripts/explore.py         # once — record selectors
+python -m tivtaam history-sync    # headed; clear the captcha/OTP by hand once
+python -m tivtaam doctor          # should now say "Ready to fill a cart"
+```
+
+Then fill a cart either way:
+
+```powershell
+python -m tivtaam plan -f list.txt --live   # terminal
+python -m tivtaam bot                       # telegram: /shop -> picks -> /approve <job> live
+```
+
+Both park the browser at `/cart` — **payment stays manual.**
+
+To start the bot automatically at logon, register it as a scheduled task
+(`scripts\install_service.ps1`). It must run in your own interactive session,
+**not** as a Windows service: a service lives in session 0 with no desktop, so
+the headed login and the parked `/cart` page would be invisible to you.
+
 ## Layout
 
 - `src/tivtaam/` — package

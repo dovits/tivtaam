@@ -14,7 +14,7 @@ from tivtaam.browser.cart import CartLine, execute_plan
 from tivtaam.browser.context import open_context, open_page
 from tivtaam.browser.history import sync_history
 from tivtaam.browser.search import search_with_cache
-from tivtaam.config import load_config
+from tivtaam.config import load_config, repo_root
 from tivtaam.db.migrations import ensure_db
 from tivtaam.resolver.pipeline import Resolution, record_auto_resolution, resolve
 from tivtaam.review.actions import review_loop
@@ -274,25 +274,98 @@ def typical_cmd() -> None:
     console.print(table)
 
 
+@app.command("bot")
+def bot_cmd() -> None:
+    """Run the Telegram bot (long-polling) in the foreground.
+
+    Equivalent to `python -m tivtaam.bot.main`. Keep this running in your own
+    logged-in desktop session: the runner opens a *headed* browser for login
+    and parks it at /cart for manual payment, neither of which is reachable
+    from a session-0 Windows service.
+    """
+    import asyncio
+
+    from tivtaam.bot.main import main as bot_main
+
+    cfg = load_config()
+    if not cfg.secrets.telegram_bot_token:
+        console.print("[red]TELEGRAM_BOT_TOKEN missing from .env[/red]")
+        raise typer.Exit(code=2)
+    if not cfg.secrets.telegram_allowed_user_id:
+        console.print("[red]TELEGRAM_ALLOWED_USER_ID missing from .env[/red]")
+        raise typer.Exit(code=2)
+    console.print("[green]bot starting[/green] — Ctrl-C to stop.")
+    try:
+        asyncio.run(bot_main())
+    except KeyboardInterrupt:
+        console.print("[yellow]bot stopped[/yellow]")
+
+
 @app.command("doctor")
 def doctor() -> None:
-    """Sanity-check config and DB without hitting the network."""
+    """Offline pre-flight: report every prerequisite and name the next step."""
     _bootstrap()
     cfg = load_config()
     conn = ensure_db()
-    rows = conn.execute("SELECT COUNT(*) AS n FROM products").fetchone()
-    n_products = rows["n"] if rows else 0
-    rows = conn.execute("SELECT COUNT(*) AS n FROM purchases").fetchone()
-    n_purchases = rows["n"] if rows else 0
-    console.print(f"DB products: {n_products}, purchases: {n_purchases}")
-    have_user = bool(cfg.secrets.tivtaam_username)
-    have_pass = bool(cfg.secrets.tivtaam_password)
-    have_anth = bool(cfg.secrets.anthropic_api_key)
-    have_tg = bool(cfg.secrets.telegram_bot_token)
-    console.print(
-        f"Secrets present: tivtaam={have_user and have_pass}, "
-        f"anthropic={have_anth}, telegram={have_tg}"
-    )
+
+    n_products = (conn.execute("SELECT COUNT(*) AS n FROM products").fetchone() or {"n": 0})["n"]
+    n_purchases = (conn.execute("SELECT COUNT(*) AS n FROM purchases").fetchone() or {"n": 0})["n"]
+
+    from tivtaam.browser import selectors as sel
+
+    n_selectors = len([k for k, v in sel._load().items() if v])
+
+    have_login = bool(cfg.secrets.tivtaam_username and cfg.secrets.tivtaam_password)
+    have_tg = bool(cfg.secrets.telegram_bot_token and cfg.secrets.telegram_allowed_user_id)
+    env_path = repo_root() / ".env"
+
+    # A prior headed login leaves a profile behind; without it the first run
+    # must be headed so a captcha/OTP can be cleared by hand.
+    profile = (repo_root() / cfg.browser.user_data_dir).resolve()
+    have_profile = profile.exists() and any(profile.iterdir())
+
+    checks: list[tuple[str, bool, str, bool]] = [
+        (".env file", env_path.exists(), str(env_path), True),
+        ("site credentials", have_login, "TIVTAAM_USERNAME / TIVTAAM_PASSWORD", True),
+        ("selectors recorded", n_selectors > 0, f"{n_selectors} keys in data/selectors.yaml", True),
+        ("browser profile", have_profile, str(profile), False),
+        ("purchase history", n_purchases > 0, f"{n_products} products / {n_purchases} purchases", True),
+        ("telegram bot", have_tg, "TELEGRAM_BOT_TOKEN / TELEGRAM_ALLOWED_USER_ID", False),
+        ("anthropic key", bool(cfg.secrets.anthropic_api_key), "ANTHROPIC_API_KEY", False),
+    ]
+
+    table = Table(title="Pre-flight")
+    table.add_column("check")
+    table.add_column("ok?")
+    table.add_column("detail", style="dim")
+    table.add_column("required", justify="center")
+    for name, ok, detail, required in checks:
+        table.add_row(
+            name,
+            "[green]yes[/green]" if ok else ("[red]no[/red]" if required else "[yellow]no[/yellow]"),
+            detail,
+            "•" if required else "",
+        )
+    console.print(table)
+
+    if not env_path.exists():
+        nxt = "copy .env.example to .env and fill it in"
+    elif not have_login:
+        nxt = "set TIVTAAM_USERNAME / TIVTAAM_PASSWORD in .env"
+    elif n_selectors == 0:
+        nxt = "python scripts/explore.py  (record selectors)"
+    elif not have_profile:
+        nxt = "python -m tivtaam history-sync  (headed — clear the captcha/OTP once)"
+    elif n_purchases == 0:
+        nxt = "python -m tivtaam history-sync"
+    else:
+        console.print(
+            "\n[green]Ready to fill a cart.[/green]\n"
+            "  python -m tivtaam plan -f list.txt --live   (terminal)"
+            + ("\n  python -m tivtaam bot                       (telegram)" if have_tg else "")
+        )
+        return
+    console.print(f"\n[yellow]Not ready.[/yellow] Next: [cyan]{nxt}[/cyan]")
 
 
 if __name__ == "__main__":
